@@ -1,0 +1,107 @@
+scrapy框架
+- 简介：所谓的框架其实就是一个被集成了很多功能且具有很强通用性的一个项目模板。
+- 学习：学习是框架中集成好的各种功能的特性是作用。
+- 进阶：逐步的探索框架的底层。
+- scrapy：是一个专门用于异步爬虫的框架。
+    - 高性能的数据解析、请求发送，持久化存储，全站数据爬取，中间件，分布式......
+- 环境的安装：
+    - mac、linum：pip install scrapy
+    - windows:
+        - a. pip3 install wheel
+
+        - b. 下载twisted文件，下载地址：http://www.lfd.uci.edu/~gohlke/pythonlibs/#twisted
+
+        - c. 进入下载目录，执行 pip install Twisted‑17.1.0‑cp35‑cp35m‑win_amd64.whl
+            - Twisted:就是一个异步的架构。被作用在了scrapy中。
+            - 安装报错：需要更换另一个版本的twisted文件进行安装即可。
+
+        - d. pip install pywin32
+
+        - e. pip install scrapy
+    - 测试：cmd中scrapy按下回车，如果没有报错说明安装成功。
+
+scrapy的基本使用：
+- 创建一个工程：
+    - scrapy startproject ProName
+    - 目录结构：
+        - spiders：爬虫文件夹
+            - 必须要存放一个爬虫源文件
+        - settings.py:工程的配置文件
+- cd ProName
+- 创建爬虫源文件：
+    - scrapy genspider spiderName www.xxx.com
+    - 编写对应的代码在爬虫文件中
+- 执行工程
+    - scrapy crawl spiderName
+    - 执行工程后，默认会输出工程所有的日志信息。
+    - 指定类型日志的输出：
+        - settings.py:
+            - LOG_LEVEL = 'ERROR'
+
+爬虫文件spiderName内容阐述：
+    - name：爬虫文件名称，该文件的唯一表示
+    - start_urls：起始url列表，存储的都是url，url可以被自动进行get请求的发送
+    - parse方法：请求后的数据解析操作
+settings.py:
+    - 1.禁止robots
+    - 2.指定日志类型：LOG_LEVEL = 'ERROR'
+    - 3.UA伪装
+
+
+scrapy数据解析
+    - 使用：response.xpath('xpath表达式')
+    - scrapy封装的xpath和etree中的xpath区别:
+        - scrapy中的xpath直接将定位到的标签中存储的值或者属性值取出，返回的是Selector对象，且相关
+          的数据值是存储在Selector对象的data属性中，需要调用extract、extract_first()取出字符串数据
+
+持久化存储
+    - 基于终端指令的持久化存储
+        - 要求：该种方式只可以将parse方法的返回值存储到本地指定后缀的文本文件中。
+        - 执行指令：scrapy crawl spiderName -o filePath
+
+    - 基于管道的持久化存储（重点）
+        - 在爬虫文件中进行数据解析
+        - 在items.py中定义相关属性
+            - 步骤1中解析出了几个字段的数据，在此就定义几个属性
+        - 在爬虫文件中将解析到的数据存储封装到Item类型的对象中
+        - 将Item类型的对象提交给管道
+        - 在管道文件（pipelines.py）中,接收爬虫文件提交过来的Item类型对象，且对其进行任意形式的
+            持久化存储操作
+        - 在配置文件中开启管道机制
+    - 基于管道实现数据的备份
+        - 将爬取到的数据分别存储到不同的载体。
+        - 实现：将数据一份存储到mysql，一份存储到redis
+        - 问题：管道文件中的一个管道类表示怎样的一组操作呢？
+            - 一个管道类对应一种形式的持久化存储操作。如果将数据存储到不同的载体中就需要使用多个管道类。
+        - 已经定义好了三个管道类，将数据写入到三个载体中进行存储：
+            - item会不会依次提交给三个管道类
+                - 不会，爬虫文件中的item只会被提交给优先级最高的那一个管道类
+                - 优先级高的管道类需要在process_item中实现return item，就item传递给下一个即将被执行的管道类
+
+scrapy的手动请求发送实现的全站数据爬取
+    - yield scrapy.Request(url,callback)：GET
+        - callback指定解析函数，用于解析数据
+
+    - yield scrapy.FormRequest(url,callback,formdata):POST
+        - formdata:字典，请求参数
+
+- 为什么start_urls列表中的url会被自动进行get请求的发送？
+    - 因为列表中的url其实是被start_requests这个父类方法实现的get请求发送
+    def start_requests(self):
+        for u in self.start_urls:
+           yield scrapy.Request(url=u,callback=self.parse)
+- 如何将start_urls中的url默认进行post请求的发送？
+    - 重写start_requests方法即可
+    def start_requests(self):
+        for u in self.start_urls:
+           yield scrapy.FormRequest(url=u,callback=self.parse)
+
+
+
+- 剩余内容：
+    - scrapy的五大核心组件介绍
+    - 请求传参实现的深度爬取
+    - 中间件机制
+    - CrawlSpider
+    - 分布式
+    - 增量式
